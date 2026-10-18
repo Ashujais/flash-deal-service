@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nnomm-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: nnomm_db
+      POSTGRES_USER: nnomm_user
+      POSTGRES_PASSWORD: nnomm_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nnomm_user -d nnomm_db"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  app1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nnomm-flash-deal-1
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: 8080
+      DATABASE_URL: jdbc:postgresql://postgres:5432/nnomm_db
+      DATABASE_USER: nnomm_user
+      DATABASE_PASSWORD: nnomm_pass
+      JWT_SECRET: nnomm_super_secure_jwt_signing_secret_key_2026_xyz
+      WEBHOOK_SECRET: nnomm_payment_webhook_hmac_secret_key_2026_abc
+      CLAIM_TTL_SECONDS: 600
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  app2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nnomm-flash-deal-2
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      PORT: 8081
+      DATABASE_URL: jdbc:postgresql://postgres:5432/nnomm_db
+      DATABASE_USER: nnomm_user
+      DATABASE_PASSWORD: nnomm_pass
+      JWT_SECRET: nnomm_super_secure_jwt_signing_secret_key_2026_xyz
+      WEBHOOK_SECRET: nnomm_payment_webhook_hmac_secret_key_2026_abc
+      CLAIM_TTL_SECONDS: 600
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
